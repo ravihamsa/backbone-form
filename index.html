@@ -1,0 +1,126 @@
+<html>
+<head>
+    <title>Backbone Form</title>
+    <script type="text/javascript" src="libs/jquery-1.9.1.js"></script>
+    <script type="text/javascript" src="libs/handlebars.js"></script>
+    <script type="text/javascript" src="libs/underscore.js"></script>
+    <script type="text/javascript" src="libs/backbone.js"></script>
+    <script type="text/javascript" src="src/app.js"></script>
+    <script type="text/javascript" src="src/base.js"></script>
+    <script type="text/javascript" src="src/form.js"></script>
+    <style type="text/css">
+
+        .element label {
+            display: inline-block;
+            width: 200px;
+            text-align: right;
+        }
+
+    </style>
+</head>
+<body>
+
+<script type="text/x-handlebars-template" id="inputView">
+    <p class="cont-{{name}}">
+        <label class="label-{{name}}">
+            {{#if label}}
+                {{label}}
+            {{else}}
+                {{formLabel name}}
+            {{/if}}
+        </label>
+        <input type="{{type}}" name="{{name}}" value="{{value}}"  class="el-{{name}}"/>
+    </p>
+</script>
+
+<script type="text/x-handlebars-template" id="radioListView">
+    <p class="cont-{{name}}">
+        <label class="label-{{name}}">
+            {{#if label}}
+            {{label}}
+            {{else}}
+            {{formLabel name}}
+            {{/if}}
+        </label>
+        {{#each options}}
+            <input type="radio" name="{{../name}}" value="{{id}}"  class="el-{{name}}"/>{{name}}
+        {{/each}}
+    </p>
+</script>
+
+<script type="text/x-handlebars-template" id="selectView">
+    <p class="cont-{{name}}">
+        <label class="label-{{name}}">
+            {{#if label}}
+            {{label}}
+            {{else}}
+            {{formLabel name}}
+            {{/if}}
+        </label>
+        <select name="{{name}}"  class="el-{{name}}">
+        {{#each options}}
+        <option  value="{{id}}">{{name}}</option>
+        {{/each}}
+        </select>
+    </p>
+</script>
+
+<script type="text/x-handlebars-template" id="checkListView">
+    <p class="cont-{{name}}">
+        <label class="label-{{name}}">
+            {{#if label}}
+            {{label}}
+            {{else}}
+            {{formLabel name}}
+            {{/if}}
+        </label>
+        {{#each options}}
+            <input type="checkbox" name="{{id}}" value="{{id}}" class="el-{{name}}"/>{{name}}
+        {{/each}}
+    </p>
+</script>
+<div id="container">
+
+</div>
+
+<div id="container2">
+
+</div>
+
+
+<script type="text/javascript">
+
+    var coll = new ElementCollection([
+        {name: 'selectSomething', type: 'select', value:'iat',options:[{id:'none', name:'none'}, {id:'iat', name:'IAT'}, {id:'others', name:'Others'}]},
+        {name: 'tester', type: 'text', group:'new'},
+        {name: 'showPassword', type: 'checkbox', value: true},
+        {name: 'radioOptions', type: 'radioList', value:'iat',options:[{id:'none', name:'none'}, {id:'iat', name:'IAT'}, {id:'others', name:'Others'}]},
+        {name: 'checkboxOptions', type: 'checkList', value:['apple', 'gauva'],options:[{id:'apple', name:'Apples'}, {id:'orange', name:'Oranges'}, {id:'gauva', name:'Gauva'}]},
+        {name: 'login', type: 'submit', value: 'login', group:'buttons'},
+        {name: 'uname', type: 'text', value: 'testuname', label: 'user name'},
+        {name: 'password', type: 'text', group:'new'}
+    ]);
+
+    var formModel = new FormModel({
+        id: 'test',
+        elements: coll,
+        action: '/someaction'
+    });
+
+    var view = new FormView({
+        model: formModel
+    });
+
+    $('#container').append(view.render().el);
+    formModel.on('all', function () {
+        console.log('-----------------------------', arguments);
+    });
+    formModel.on('elements:showPassword:change:value', function (model, value) {
+        formModel.setElementAttribute('password', 'type', value ? 'text' : 'password')
+    });
+
+
+</script>
+
+</body>
+</html>
