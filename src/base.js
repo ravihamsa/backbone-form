@@ -84,7 +84,18 @@
     });
 
     var BaseModel = Backbone.Model.extend({
-
+        is:function(param){
+            return this.get(param) === true;
+        },
+        isNot:function(param){
+            return !this.is(param);
+        },
+        isEqual:function(param, value){
+            return this.get(param) === value;
+        },
+        isNotEqual:function(param, value){
+            return !this.isEqual.apply(this, arguments);
+        }
     });
 
     var BaseCollection = Backbone.Collection.extend({

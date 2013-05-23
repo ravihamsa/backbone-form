@@ -10,11 +10,7 @@
     <script type="text/javascript" src="src/form.js"></script>
     <style type="text/css">
 
-        .element label {
-            display: inline-block;
-            width: 200px;
-            text-align: right;
-        }
+
 
     </style>
 </head>
@@ -97,7 +93,7 @@
         {name: 'radioOptions', type: 'radioList', value:'iat',options:[{id:'none', name:'none'}, {id:'iat', name:'IAT'}, {id:'others', name:'Others'}]},
         {name: 'checkboxOptions', type: 'checkList', value:['apple', 'gauva'],options:[{id:'apple', name:'Apples'}, {id:'orange', name:'Oranges'}, {id:'gauva', name:'Gauva'}]},
         {name: 'login', type: 'submit', value: 'login', group:'buttons'},
-        {name: 'uname', type: 'text', value: 'testuname', label: 'user name'},
+        {name: 'uname', type: 'text', value: 'testuname', label: 'user name', activeRules:[{expr:'neq', element:'selectSomething', value:'iat'},{expr:'neq', element:'radioOptions', value:'iat'}]},
         {name: 'password', type: 'text', group:'new'}
     ]);
 

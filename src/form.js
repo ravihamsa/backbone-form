@@ -12,16 +12,37 @@
     var app = window.app;
     var Base = window.Base;
 
+
+    var activeRuleMethods = {
+        'eq':function(source, rule){
+            return source.isEqual('value', rule.value);
+        },
+        'neq':function(source, rule){
+            return source.isNotEqual('value', rule.value);
+        }
+    };
+
     var ElementModel = Base.Model.extend({
             defaults:{
                 valid:true,
+                active:true,
                 disabled:false,
                 readonly:false,
                 value:null,
                 label:null,
+                activeRules:[],
+                validationRules:[],
                 group:'elements'
             },
-        idAttribute:'name'
+        idAttribute:'name',
+        updateActive:function(){
+            var activeRules = this.get('activeRules');
+            var isActive = _.every(activeRules,function(rule){
+                var sourceElement = this.collection.get(rule.element);
+                return activeRuleMethods[rule.expr].call(null, sourceElement, rule);
+            }, this);
+            this.set('active',isActive);
+        }
     });
 
     var ElementCollection = Base.Collection.extend({
@@ -45,7 +66,6 @@
                 if($('script#'+this.template).length > 0){
                     this.template = app.getTemplateFromScriptTag(this.template);
                 }
-
             }
             this.$el.html(this.template(this.model.toJSON()));
             this.syncAttributes();
@@ -84,6 +104,9 @@
         validChangeHandler:function(value){
             this.$el.toggleClass('readonly', value);
             this.$('input').attr('readonly', value);
+        },
+        activeChangeHandler:function(value){
+            this.$el.toggle(value);
         },
         valueChangeHandler:function(value){
             this.$('input').val(value);
@@ -171,9 +194,40 @@
                 args[0] = 'elements:'+model.get('name')+':'+eventName;
                 this.trigger.apply(this, args);
             },this);
+
+            elements.each(function(elementModel){
+
+                //add active rules
+                var activeRules =  elementModel.get('activeRules');
+                _.each(activeRules,function(rule){
+                    var toWatchElement = elements.get(rule.element);
+                    toWatchElement.on('change:value',function(model, value){
+                        elementModel.updateActive();
+                    });
+                    elementModel.updateActive();
+                    /*
+                    switch(rule.expr){
+                        case 'eq':
+                            elementModel.set('active', toWatchElement.isEqual('value', rule.value));
+                            toWatchElement.on('change:value',function(model, value){
+                                elementModel.updateActive();
+                            });
+                            break;
+                        case 'neq':
+                            elementModel.set('active', toWatchElement.isNotEqual('value', rule.value));
+                            toWatchElement.on('change:value',function(model, value){
+                                elementModel.set('active', value !== rule.value);
+                            });
+                            break;
+                    }
+                    */
+
+                });
+            });
+
         },
         defaults:{
-            elements : new Base.Collection()
+            elements : new ElementCollection()
         },
         setElementAttribute:function(elementName, attribute, value){
             var elements = this.get('elements');
@@ -181,13 +235,15 @@
         },
         getValueObject:function(){
             var elements = this.get('elements');
-            var arr = elements.map(function(model){
-                var obj = {};
-                obj[model.id] = model.get('value');
-                return obj;
+            var obj = {};
+
+            elements.each(function(model){
+                if(model.is('active')){
+                    obj[model.id] = model.get('value');
+                }
             });
 
-            return _.extend.apply(null, arr);
+            return obj;
         }
 
     });
