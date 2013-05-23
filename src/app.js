@@ -40,6 +40,10 @@
         return app.getString('form.label.'+str);
     });
 
+    Handlebars.registerHelper('elementLabel',function(obj){
+        return obj.label || app.getString('form.label.'+obj.name);
+    });
+
 
     window.app = app;
 

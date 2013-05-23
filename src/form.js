@@ -13,14 +13,9 @@
     var Base = window.Base;
 
 
-    var activeRuleMethods = {
-        'eq':function(source, rule){
-            return source.isEqual('value', rule.value);
-        },
-        'neq':function(source, rule){
-            return source.isNotEqual('value', rule.value);
-        }
-    };
+    var DOT_CONTROL_GROUP = '.control-group';
+    var DOT_CONTROL_LABEL = '.control-label';
+    var INVALID_CLASS = 'error';
 
     var ElementModel = Base.Model.extend({
             defaults:{
@@ -42,6 +37,20 @@
                 return activeRuleMethods[rule.expr].call(null, sourceElement, rule);
             }, this);
             this.set('active',isActive);
+        },
+        isElementValid:function(){
+
+            var validationRules = this.get('validationRules');
+            var errors = [];
+            var isValid = _.every(validationRules,function(rule){
+                var isValidForRule = validationRuleMethods[rule.expr].call(this,rule, this.get('value'));
+                if(!isValidForRule){
+                    errors.push(rule);
+                }
+                return isValidForRule;
+            }, this);
+            this.set('valid',isValid);
+            return errors;
         }
     });
 
@@ -102,7 +111,7 @@
             this.$('input').attr('readonly', value);
         },
         validChangeHandler:function(value){
-            this.$el.toggleClass('invalid', !value);
+            this.$(DOT_CONTROL_GROUP).toggleClass(INVALID_CLASS, !value);
         },
         activeChangeHandler:function(value){
             this.$el.toggle(value);
@@ -234,15 +243,24 @@
         },
         getValueObject:function(){
             var elements = this.get('elements');
+            var errors = this.validateElements();
             var obj = {};
-
-            elements.each(function(model){
-                if(model.is('active')){
-                    obj[model.id] = model.get('value');
-                }
-            });
-
+            if(errors.length === 0){
+                elements.each(function(model){
+                    if(model.is('active')){
+                        obj[model.id] = model.get('value');
+                    }
+                });
+            }
             return obj;
+        },
+        validateElements:function(){
+            var elements = this.get('elements');
+            var errors = [];
+            elements.each(function(model){
+                errors = errors.concat(model.isElementValid());
+            });
+            return errors;
         }
 
     });
@@ -257,7 +275,7 @@
         events:{
           'submit form':'formSubmitHandler'
         },
-        template: app.getTemplateFromString('<form action="{{action}}" id="form-{{id}}"></form>'),
+        template: app.getTemplateFromString('<form action="{{action}}" id="form-{{id}}" class="form-horizontal"></form>'),
         render:function(){
             var el = this.$el;
             el.empty();
@@ -313,6 +331,82 @@
     });
 
 
+    var validationRuleMethods = {
+        'req':function (rule, value) {
+            return !_.isEmpty(value);
+        },
+        'digits':function (rule, value) {
+            return (/^\d{5}$/).test(value);
+        },
+        'alphanumeric':function (rule, value) {
+            var ck_alphaNumeric = /^\w+$/;
+            return ck_alphaNumeric.test(value);
+        },
+        'number':function (rule, value) {
+            if(value === undefined){
+                return true;
+            }
+            var numberVal = +value;
+            return numberVal === numberVal;
+        },
+        'email':function (rule, value) {
+            var ck_email = /^([\w\-]+(?:\.[\w\-]+)*)@((?:[\w\-]+\.)*\w[\w\-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
+            return ck_email.test($.trim(value));
+        },
+        'minlen':function (rule, value, exprvalue) {
+            var min = parseInt(exprvalue, 10);
+            return $.trim(String(value)).length >= min;
+        },
+        'maxlen':function (rule, value, exprvalue) {
+            var max = parseInt(exprvalue, 10);
+            return $.trim(String(value)).length <= max;
+        },
+        'lt':function (rule, value, exprvalue) {
+            var target = parseFloat(exprvalue);
+            var curvalue = parseFloat(value);
+            return curvalue < target;
+        },
+        'gt':function (rule, value, exprvalue) {
+            var target = parseFloat(exprvalue);
+            var curvalue = parseFloat(value);
+            return curvalue > target;
+        },
+        'eq':function (rule, value, exprvalue) {
+            return exprvalue === value;
+        },
+        'url':function (rule, value) {
+            if (value === '') {
+                return true;
+            }
+            var ck_url = /(http|https|market):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/i;
+            return ck_url.test($.trim(value));
+        },
+        'emaillist':function (rule, value) {
+            var emails = value.split(',');
+            var ck_email = /^([\w\-]+(?:\.[\w\-]+)*)@((?:[\w\-]+\.)*\w[\w\-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
+            for (var i = 0; i < emails.length; i++) {
+                if ($.trim(emails[i]) !== '' && !ck_email.test($.trim(emails[i]))) {
+                    return false;
+                }
+            }
+            return true;
+        },
+        'function':function(rule, value){
+            var func = rule.func;
+            return func.call(null, value);
+        }
+
+    };
+
+
+    var activeRuleMethods = {
+        'eq':function(source, rule){
+            return source.isEqual('value', rule.value);
+        },
+        'neq':function(source, rule){
+            return source.isNotEqual('value', rule.value);
+        }
+    };
 
 
     window.FormModel = FormModel;

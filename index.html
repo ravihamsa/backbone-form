@@ -1,5 +1,11 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="utf-8">
+    <title>Base · Bootstrap</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
     <title>Backbone Form</title>
     <script type="text/javascript" src="libs/jquery-1.9.1.js"></script>
     <script type="text/javascript" src="libs/handlebars.js"></script>
@@ -8,72 +14,72 @@
     <script type="text/javascript" src="src/app.js"></script>
     <script type="text/javascript" src="src/base.js"></script>
     <script type="text/javascript" src="src/form.js"></script>
-    <style type="text/css">
-
-
-
-    </style>
+    <link rel="stylesheet" href="libs/bootstrap/css/bootstrap.css"/>
 </head>
 <body>
 
 <script type="text/x-handlebars-template" id="inputView">
-    <p class="cont-{{name}}">
-        <label class="label-{{name}}">
-            {{#if label}}
-                {{label}}
-            {{else}}
-                {{formLabel name}}
-            {{/if}}
+    <div class="control-group">
+        <label class="control-label">
+            {{elementLabel this}}
         </label>
-        <input type="{{type}}" name="{{name}}" value="{{value}}"  class="el-{{name}}"/>
-    </p>
+
+        <div class="controls">
+            <input type="{{type}}" name="{{name}}" value="{{value}}" class="el-{{name}}"/>
+            <span class="help-inline"></span>
+        </div>
+    </div>
 </script>
 
 <script type="text/x-handlebars-template" id="radioListView">
-    <p class="cont-{{name}}">
-        <label class="label-{{name}}">
-            {{#if label}}
-            {{label}}
-            {{else}}
-            {{formLabel name}}
-            {{/if}}
+    <div class="control-group">
+        <label class="control-label">
+            {{elementLabel this}}
         </label>
-        {{#each options}}
-            <input type="radio" name="{{../name}}" value="{{id}}"  class="el-{{name}}"/>{{name}}
-        {{/each}}
-    </p>
+
+        <div class="controls">
+            {{#each options}}
+            <label class="radio inline">
+                <input type="radio" name="{{../name}}" value="{{id}}" class="el-{{name}}"/>{{name}}
+            </label>
+            {{/each}}
+            <span class="help-inline"></span>
+        </div>
+    </div>
 </script>
 
 <script type="text/x-handlebars-template" id="selectView">
-    <p class="cont-{{name}}">
-        <label class="label-{{name}}">
-            {{#if label}}
-            {{label}}
-            {{else}}
-            {{formLabel name}}
-            {{/if}}
+    <div class="control-group">
+        <label class="control-label">
+            {{elementLabel this}}
         </label>
-        <select name="{{name}}"  class="el-{{name}}">
-        {{#each options}}
-        <option  value="{{id}}">{{name}}</option>
-        {{/each}}
-        </select>
-    </p>
+
+        <div class="controls">
+            <select name="{{name}}" class="el-{{name}}">
+                {{#each options}}
+                <option value="{{id}}">{{name}}</option>
+                {{/each}}
+            </select>
+            <span class="help-inline"></span>
+        </div>
+    </div>
 </script>
 
 <script type="text/x-handlebars-template" id="checkListView">
-    <p class="cont-{{name}}">
-        <label class="label-{{name}}">
-            {{#if label}}
-            {{label}}
-            {{else}}
-            {{formLabel name}}
-            {{/if}}
+    <div class="control-group">
+        <label class="control-label">
+            {{elementLabel this}}
         </label>
-        {{#each options}}
-            <input type="checkbox" name="{{id}}" value="{{id}}" class="el-{{name}}"/>{{name}}
-        {{/each}}
-    </p>
+
+        <div class="controls">
+            {{#each options}}
+            <label class="checkbox inline">
+                <input type="checkbox" name="{{id}}" value="{{id}}" class="el-{{name}}"/>{{name}}
+            </label>
+            {{/each}}
+            <span class="help-inline"></span>
+        </div>
+    </div>
 </script>
 <div id="container">
 
@@ -87,14 +93,34 @@
 <script type="text/javascript">
 
     var coll = new ElementCollection([
-        {name: 'selectSomething', type: 'select', value:'iat',options:[{id:'none', name:'none'}, {id:'iat', name:'IAT'}, {id:'others', name:'Others'}]},
-        {name: 'tester', type: 'text', group:'new'},
+        {name: 'selectSomething', type: 'select', value: 'iat', options: [
+            {id: 'none', name: 'none'},
+            {id: 'iat', name: 'IAT'},
+            {id: 'others', name: 'Others'}
+        ]},
+        {name: 'tester', type: 'text', group: 'new', validationRules: [
+            {expr: 'req'},
+            {expr: 'digits'}
+        ]},
         {name: 'showPassword', type: 'checkbox', value: true},
-        {name: 'radioOptions', type: 'radioList', value:'iat',options:[{id:'none', name:'none'}, {id:'iat', name:'IAT'}, {id:'others', name:'Others'}]},
-        {name: 'checkboxOptions', type: 'checkList', value:['apple', 'gauva'],options:[{id:'apple', name:'Apples'}, {id:'orange', name:'Oranges'}, {id:'gauva', name:'Gauva'}]},
-        {name: 'login', type: 'submit', value: 'login', group:'buttons'},
-        {name: 'uname', type: 'text', value: 'testuname', label: 'user name', activeRules:[{expr:'neq', element:'selectSomething', value:'iat'},{expr:'neq', element:'radioOptions', value:'iat'}]},
-        {name: 'password', type: 'text', group:'new'}
+        {name: 'radioOptions', type: 'radioList', value: 'iat', options: [
+            {id: 'none', name: 'none'},
+            {id: 'iat', name: 'IAT'},
+            {id: 'others', name: 'Others'}
+        ]},
+        {name: 'checkboxOptions', type: 'checkList', value: ['apple', 'gauva'], options: [
+            {id: 'apple', name: 'Apples'},
+            {id: 'orange', name: 'Oranges'},
+            {id: 'gauva', name: 'Gauva'}
+        ]},
+        {name: 'login', type: 'submit', value: 'login', group: 'buttons'},
+        {name: 'uname', type: 'text', value: 'testuname', label: 'user name', activeRules: [
+            {expr: 'neq', element: 'selectSomething', value: 'iat'},
+            {expr: 'neq', element: 'radioOptions', value: 'iat'}
+        ]},
+        {name: 'password', type: 'text', group: 'new', validationRules: [
+            {expr: 'req'}
+        ]}
     ]);
 
     var formModel = new FormModel({
