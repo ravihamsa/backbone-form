@@ -102,8 +102,7 @@
             this.$('input').attr('readonly', value);
         },
         validChangeHandler:function(value){
-            this.$el.toggleClass('readonly', value);
-            this.$('input').attr('readonly', value);
+            this.$el.toggleClass('invalid', !value);
         },
         activeChangeHandler:function(value){
             this.$el.toggle(value);
