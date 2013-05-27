@@ -30,6 +30,18 @@
         </div>
     </div>
 </script>
+<script type="text/x-handlebars-template" id="textAreaView">
+    <div class="control-group">
+        <label class="control-label">
+            {{elementLabel this}}
+        </label>
+
+        <div class="controls">
+            <textarea type="{{type}}" name="{{name}}" class="el-{{name}}">{{value}}</textarea>
+            <span class="help-inline"></span>
+        </div>
+    </div>
+</script>
 
 <script type="text/x-handlebars-template" id="radioListView">
     <div class="control-group">
@@ -81,8 +93,24 @@
         </div>
     </div>
 </script>
+<script type="text/x-handlebars-template" id="trackingPickerView">
+    <div class="control-group">
+        <label class="control-label">
+            {{elementLabel this}}
+        </label>
 
-
+        <div class="controls">
+            {{#ifEqual value.type 'impression'}}
+            <select>
+                <option value="url" selected="selected">URL</option>
+                <option value="script">Script</option>
+            </select>
+            {{/ifEqual}}
+            <textarea>{{value.value}}</textarea>
+            <span class="help-inline"></span>
+        </div>
+    </div>
+</script>
 <div id="container">
 
 </div>
@@ -94,35 +122,56 @@
 
 <script type="text/javascript">
 
+    var TrackingPickerView = ElementView.extend({
+        events:{
+            'change select':'updateValue',
+            'blur textarea':'updateValue'
+        },
+        template:'trackingPickerView',
+        valueFunction:function(){
+
+            return {
+                trackingType:this.$('select').val(),
+                value:this.$('textarea').val(),
+                type:this.model.get('type')
+            }
+        }
+    });
+
     var coll = new ElementCollection([
-        {name: 'selectSomething', type: 'select', value: 'iat', options: [
-            {id: 'none', name: 'none'},
-            {id: 'iat', name: 'IAT'},
-            {id: 'others', name: 'Others'}
+        {name: 'adType', type: 'select', value: '1', options: [
+            {id: 1, name: 'Text Ad'},
+            {id: 2, name: 'Banner Ad'},
+            {id: 3, name: 'Banner URL'},
+            {id: 4, name: 'Rich Media Ad'}
         ]},
-        {name: 'tester', type: 'text', group: 'new', validationRules: [
-            {expr: 'req', errorCode:'string.my.error'},
-            {expr: 'digits'}
+        {name: 'adName', validationRules: [
+            {expr: 'req'},
+            {expr: 'maxlen', length: 40}
         ]},
-        {name: 'showPassword', type: 'checkbox', value: true},
-        {name: 'radioOptions', type: 'radioList', value: 'iat', options: [
-            {id: 'none', name: 'none'},
-            {id: 'iat', name: 'IAT'},
-            {id: 'others', name: 'Others'}
+        {name: 'adText', validationRules: [
+            {expr: 'req'},
+            {expr: 'maxlen', length: 40}
+        ], activeRules: [
+            {expr: 'eq', element: 'adType', value: '1'}
         ]},
-        {name: 'checkboxOptions', type: 'checkList', value: ['apple', 'gauva'], options: [
-            {id: 'apple', name: 'Apples'},
-            {id: 'orange', name: 'Oranges'},
-            {id: 'gauva', name: 'Gauva'}
+        {name: 'altText', activeRules: [
+            {expr: 'eq', element: 'adType', value: '2'}
         ]},
-        {name: 'login', type: 'submit', value: 'login', group: 'buttons'},
-        {name: 'uname', type: 'text', value: 'testuname', label: 'user name', activeRules: [
-            {expr: 'neq', element: 'selectSomething', value: 'iat'},
-            {expr: 'neq', element: 'radioOptions', value: 'iat'}
+        {name: 'banner', activeRules: [
+            {expr: 'eq', element: 'adType', value: '2'}
         ]},
-        {name: 'password', type: 'text', group: 'new', validationRules: [
-            {expr: 'req'}
-        ]}
+        {name: 'bannerURL', activeRules: [
+            {expr: 'eq', element: 'adType', value: '3'}
+        ]},
+        {name: 'rmURL', activeRules: [
+            {expr: 'eq', element: 'adType', value: '4'}
+        ]},
+        {name: 'impressionTracking1', type: 'trackingPicker', value:{type:'impression', value:'ravi'}},
+        {name: 'impressionTracking2', type: 'trackingPicker', value:{type:'impression'}},
+        {name: 'clickTracking1', type: 'trackingPicker', value:{type:'click'}},
+        {name: 'clickTracking2', type: 'trackingPicker', value:{type:'click'}},
+        {name: 'login', type: 'submit', value: 'login', group: 'buttons'}
     ]);
 
     var formModel = new FormModel({
@@ -134,6 +183,8 @@
     var view = new FormView({
         model: formModel
     });
+
+    view.addToTypeViewIndex('trackingPicker', TrackingPickerView);
 
     $('#container').append(view.render().el);
     formModel.on('all', function () {

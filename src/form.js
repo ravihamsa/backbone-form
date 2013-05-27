@@ -15,6 +15,7 @@
 
     var DOT_CONTROL_GROUP = '.control-group';
     var DOT_CONTROL_LABEL = '.control-label';
+    var DOT_HELP_INLINE = '.help-inline';
     var INVALID_CLASS = 'error';
 
     var ElementModel = Base.Model.extend({
@@ -27,6 +28,8 @@
                 label:null,
                 activeRules:[],
                 validationRules:[],
+                type:'text',
+                errorCode:'',
                 group:'elements'
             },
         idAttribute:'name',
@@ -39,17 +42,23 @@
             this.set('active',isActive);
         },
         isElementValid:function(){
-
             var validationRules = this.get('validationRules');
             var errors = [];
+            var errorRule;
             var isValid = _.every(validationRules,function(rule){
                 var isValidForRule = validationRuleMethods[rule.expr].call(this,rule, this.get('value'));
                 if(!isValidForRule){
                     errors.push(rule);
+                    errorRule = rule;
                 }
                 return isValidForRule;
             }, this);
             this.set('valid',isValid);
+            if(errorRule){
+                this.set('errorCode', 'error.'+this.get('name')+'.'+errorRule.expr);
+            }else{
+                this.set('errorCode', '');
+            }
             return errors;
         }
     });
@@ -98,6 +107,7 @@
                     handler.call(this, model.get(attribute));
                 }
             },this);
+            this.updateValue(true);
         },
 //        typeChangeHandler:function(value){
 //            this.$('input').attr('type', value);
@@ -119,11 +129,23 @@
         valueChangeHandler:function(value){
             this.$('input').val(value);
         },
+        errorCodeChangeHandler:function(errorCode){
+            var el = this.$(DOT_HELP_INLINE);
+            if(errorCode===''){
+                el.empty();
+            }else{
+                this.$(DOT_HELP_INLINE).html(app.getString(errorCode));
+            }
+        },
         valueFunction:function(){
             return this.$('input').val();
         },
-        updateValue:function(){
+        updateValue:function(skipValidate){
             this.model.set('value', this.valueFunction());
+            if(skipValidate!==true){
+                this.model.isElementValid();
+            }
+
         }
     });
 
@@ -133,6 +155,19 @@
         },
         valueChangeHandler:function(value){
             this.$('input').attr('checked',value);
+        }
+    });
+    var TextAreaView = InputView.extend({
+       template:'textAreaView',
+        events:{
+            'change textarea': 'updateValue',
+            'blur textarea': 'updateValue'
+        },
+        valueFunction:function(){
+            return this.$('textarea').val();
+        },
+        valueChangeHandler:function(value){
+            this.$('textarea').val(value);
         }
     });
 
@@ -190,6 +225,22 @@
             this.$('input').attr('checked',value);
         }
     });
+
+    var typeViewIndex={
+        'select':SelectView,
+        'textarea':TextAreaView,
+        'checkbox':CheckboxView,
+        'radioList':RadioListView,
+        'checkList':CheckListView
+    };
+
+    var getViewByType = function(type){
+        return typeViewIndex[type] || InputView;
+    };
+
+    var updateTypeViewIndex = function(indexObj){
+        typeViewIndex = _.extend({},typeViewIndex, indexObj);
+    };
 
     var FormModel = Base.Model.extend({
         constructor:function(){
@@ -269,7 +320,11 @@
     var groupPrefix = 'grp-';
 
 
-    var FormView = Backbone.View.extend({
+    var FormView = Base.View.extend({
+        constructor:function(options){
+            this.typeViewIndex = {};
+            Base.View.apply(this, arguments);
+        },
         tagName:'div',
         className:'form-view',
         events:{
@@ -290,28 +345,12 @@
             return this;
         },
         addElement:function(model){
-            var ElementView = InputView;
             var attr = model.toJSON();
-            switch(attr.type){
-                case 'select':
-                    ElementView = SelectView;
-                    break;
-                case 'checkbox':
-                    ElementView = CheckboxView;
-                    break;
-                case 'radioList':
-                    ElementView = RadioListView;
-                    break;
-                case 'checkList':
-                    ElementView = CheckListView;
-                    break;
-            }
+            var ElementView = this.typeViewIndex[attr.type] || getViewByType(attr.type);
             var view = new ElementView({
                 model:model
             });
-
             var group =  attr.group;
-
             this.$('.'+groupPrefix+group).append(view.render().el);
         },
         renderGroupContainers:function(){
@@ -327,9 +366,11 @@
         formSubmitHandler:function(e){
             e.preventDefault();
             console.log(this.model.getValueObject());
+        },
+        addToTypeViewIndex:function(type,View){
+            this.typeViewIndex[type] = View;
         }
     });
-
 
     var validationRuleMethods = {
         'req':function (rule, value) {
@@ -353,12 +394,12 @@
             var ck_email = /^([\w\-]+(?:\.[\w\-]+)*)@((?:[\w\-]+\.)*\w[\w\-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
             return ck_email.test($.trim(value));
         },
-        'minlen':function (rule, value, exprvalue) {
-            var min = parseInt(exprvalue, 10);
+        'minlen':function (rule, value) {
+            var min = rule.length;
             return $.trim(String(value)).length >= min;
         },
         'maxlen':function (rule, value, exprvalue) {
-            var max = parseInt(exprvalue, 10);
+            var max = rule.length;
             return $.trim(String(value)).length <= max;
         },
         'lt':function (rule, value, exprvalue) {
