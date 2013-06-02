@@ -105,12 +105,37 @@
                 <option value="url" selected="selected">URL</option>
                 <option value="script">Script</option>
             </select>
+            {{else}}
+            <select style="display:none">
+                <option value="url" selected="selected">URL</option>
+            </select>
             {{/ifEqual}}
             <textarea>{{value.value}}</textarea>
             <span class="help-inline"></span>
         </div>
     </div>
 </script>
+
+<script type="text/x-handlebars-template" id="trackingCodeView">
+    <div class="control-group">
+        <label class="control-label">
+
+        </label>
+
+        <div class="controls">
+           <div>
+            <label class="checkbox inline">
+                <input type="checkbox" name="isTracking" /> Enable Tracking
+            </label>
+           </div>
+            <div class="trackingDetails"  style="display:none">
+                <input type="text" value="{{value}}"/>
+            </div>
+            <span class="help-inline"></span>
+        </div>
+    </div>
+</script>
+
 <div id="container">
 
 </div>
@@ -129,7 +154,6 @@
         },
         template:'trackingPickerView',
         valueFunction:function(){
-
             return {
                 trackingType:this.$('select').val(),
                 value:this.$('textarea').val(),
@@ -137,6 +161,44 @@
             }
         }
     });
+
+
+    var TrackingCodeView =  ElementView.extend({
+        events:{
+            'blur input':'updateValue',
+            'change input:checkbox':'updateActive'
+        },
+        template:'trackingCodeView',
+        valueFunction:function(){
+            var el = this.$('.trackingDetails input');
+            return el.val();
+        },
+        valueChangeHandler:function(value){
+
+            var el = this.$('.trackingDetails input');
+            el.val(value);
+
+            var isTracking = $.trim(value) !== '';
+
+            this.model.set('active', isTracking);
+
+            var chkbox = this.$('input[name=isTracking]');
+            chkbox.each(function(){
+                this.checked = isTracking
+            })
+
+
+
+        },
+        updateActive:function(){
+            var chkbox = this.$('input[name=isTracking]');
+            this.model.set('active',chkbox.is(':checked'));
+        },
+        activeChangeHandler:function(value){
+            console.log(this.$('.trackingDetails'), value);
+            this.$('.trackingDetails').toggle(value);
+        }
+    })
 
     var coll = new ElementCollection([
         {name: 'adType', type: 'select', value: '1', options: [
@@ -163,6 +225,9 @@
         ]},
         {name: 'bannerURL', activeRules: [
             {expr: 'eq', element: 'adType', value: '3'}
+        ],validationRules:[
+            {expr:'req'},
+            {expr:'url'}
         ]},
         {name: 'rmURL', activeRules: [
             {expr: 'eq', element: 'adType', value: '4'}
@@ -171,6 +236,7 @@
         {name: 'impressionTracking2', type: 'trackingPicker', value:{type:'impression'}},
         {name: 'clickTracking1', type: 'trackingPicker', value:{type:'click'}},
         {name: 'clickTracking2', type: 'trackingPicker', value:{type:'click'}},
+        {name: 'trackingCode', type: 'trackingCode', validationRules:[{expr:'req'}], active:false},
         {name: 'login', type: 'submit', value: 'login', group: 'buttons'}
     ]);
 
@@ -185,6 +251,7 @@
     });
 
     view.addToTypeViewIndex('trackingPicker', TrackingPickerView);
+    view.addToTypeViewIndex('trackingCode', TrackingCodeView);
 
     $('#container').append(view.render().el);
     formModel.on('all', function () {
