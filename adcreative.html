@@ -11,6 +11,9 @@
     <script type="text/javascript" src="libs/handlebars.js"></script>
     <script type="text/javascript" src="libs/underscore.js"></script>
     <script type="text/javascript" src="libs/backbone.js"></script>
+    <script type="text/javascript" src="http://ciui.corp.inmobi.com/advjs/swfobject.js"></script>
+    <script type="text/javascript" src="http://ciui.corp.inmobi.com/swfupload/swfupload.js"></script>
+    <script type="text/javascript" src="http://ciui.corp.inmobi.com//swfupload/swfupload.queue.js"></script>
     <script type="text/javascript" src="src/app.js"></script>
     <script type="text/javascript" src="src/base.js"></script>
     <script type="text/javascript" src="src/form.js"></script>
@@ -123,14 +126,45 @@
         </label>
 
         <div class="controls">
-           <div>
-            <label class="checkbox inline">
-                <input type="checkbox" name="isTracking" /> Enable Tracking
-            </label>
-           </div>
-            <div class="trackingDetails"  style="display:none">
+            <div>
+                <label class="checkbox inline">
+                    <input type="checkbox" name="isTracking"/> Enable Tracking
+                </label>
+            </div>
+            <div class="trackingDetails" style="display:none">
                 <input type="text" value="{{value}}"/>
             </div>
+            <span class="help-inline"></span>
+        </div>
+    </div>
+</script>
+
+<script type="text/x-handlebars-template" id="bannerUploadView">
+    <div class="control-group">
+        <label class="control-label">
+            {{elementLabel this}}
+        </label>
+
+        <div class="controls">
+            <div class="banner-upload-container">
+                <p>
+                    The recommended dimensions for this ad group are 216 x 36 , 300 x 50 , 120 x 20 , 168 x 28 , 728 x
+                    90 , 468 x 60 , 320 x 48 , 300 x 250 , 320 x 50 , 120 x 600 , 320 x 53 , 480 x 60 , 768 x 66 , 480 x
+                    75 , 292 x 60 , 500 x 130 , 300 x 30 , 320 x 568 , 250 x 125 , 250 x 250 dimension. </p>
+
+                <p>
+                    Please upload at least one of the recommended banners
+                </p>
+
+                <p>
+                    The accepted banner formats are JPG, GIF, PNG. The maximum banner size is 100 KB.
+                </p>
+
+            </div>
+            <div>
+                <span class="add-files-but btn"> </span> <button class="upload-but" disabled="disabled">Upload</button>
+            </div>
+
             <span class="help-inline"></span>
         </div>
     </div>
@@ -148,32 +182,132 @@
 <script type="text/javascript">
 
     var TrackingPickerView = ElementView.extend({
-        events:{
-            'change select':'updateValue',
-            'blur textarea':'updateValue'
+        events: {
+            'change select': 'updateValue',
+            'blur textarea': 'updateValue'
         },
-        template:'trackingPickerView',
-        valueFunction:function(){
+        template: 'trackingPickerView',
+        valueFunction: function () {
             return {
-                trackingType:this.$('select').val(),
-                value:this.$('textarea').val(),
-                type:this.model.get('type')
+                trackingType: this.$('select').val(),
+                value: this.$('textarea').val(),
+                type: this.model.get('type')
             }
         }
     });
 
-
-    var TrackingCodeView =  ElementView.extend({
-        events:{
-            'blur input':'updateValue',
-            'change input:checkbox':'updateActive'
+    var BannerUploadView = ElementView.extend({
+        events: {
+            'change select': 'updateValue',
+            'blur textarea': 'updateValue'
         },
-        template:'trackingCodeView',
-        valueFunction:function(){
+        template: 'bannerUploadView',
+        valueFunction: function () {
+            return {
+                trackingType: this.$('select').val(),
+                value: this.$('textarea').val(),
+                type: this.model.get('type')
+            }
+        },
+        afterRender: function () {
+            var buttonEl = this.$('.add-files-but');
+            var uploadBtn = this.$('.upload-but');
+            var butId = this.model.cid + '_UploadButton';
+            buttonEl.attr('id', butId);
+
+            var logFunction = function () {
+                console.log.apply(null, arguments);
+            };
+
+            var fileCollection = new Base.Collection();
+            fileCollection.on('all',logFunction);
+
+
+            var urlRoot = 'http://ciui.corp.inmobi.com';
+
+            var settings = {
+                flash_url: urlRoot+"/swfupload/swfupload.swf",
+                post_params: {type: "latlng"},
+                upload_url: urlRoot+"/advertiser/v2/uploadcsv.html",
+                button_image_url: urlRoot+'/advimages/upload-csv.png',
+                file_size_limit: "100 MB",
+                file_types: "*.png; *.jpg; *.gif",
+                file_types_description: "Image Files",
+                file_upload_limit: 100,
+                file_queue_limit: 0,
+                custom_settings: {
+                    progressTarget: "fsUploadProgress",
+                    cancelButtonId: "btnCancel"
+                },
+                debug: false,
+
+                // Button settings
+                button_width: "93",
+                button_height: "30",
+                button_placeholder_id: butId,
+                file_dialog_complete_handler: function fileDialogComplete(numFilesSelected, numFilesQueued) {
+                    var uploaderObj = this;
+
+                    try {
+                        /* I want auto start the upload and I can do that here */
+                        //this.startUpload();
+                        var id = this.movieName.split("_")[1];
+                        if(numFilesSelected > 0) {
+                            uploadBtn.off();
+                            uploadBtn.removeAttr('disabled');
+                            uploadBtn.on('click',function(e){
+                                e.preventDefault();
+                                uploaderObj.startUpload();
+                            });
+
+                        }
+                    } catch (ex) {
+                        this.debug(ex);
+                    }
+                },
+
+                // The event handler functions are defined in handlers.js
+                file_queued_handler: function(file){
+                    console.log(file);
+                    fileCollection.add(file);
+                },
+                file_queue_error_handler: logFunction,
+                upload_start_handler: function upload_start_handler() {
+                    console.log('start handler')
+                },
+                upload_progress_handler: logFunction,
+                upload_error_handler: logFunction,
+                upload_success_handler: function upload_success_handler(file, serverData) {
+                    var resp = JSON.parse(serverData);
+                    console.log(resp);
+                    //_this.addCSVLatLongs(resp.data.results);
+
+                },
+                upload_complete_handler: function upload_complete_handler() {
+                    console.log('upload_complete_handler', arguments, this);
+                },
+                queue_complete_handler: logFunction    // Queue plugin event
+            };
+
+            _.defer(function(){
+                var swfu = new SWFUpload(settings);
+            });
+
+        }
+    });
+
+
+    var TrackingCodeView = ElementView.extend({
+        events: {
+            'blur input': 'updateValue',
+            'change input:checkbox': 'updateActive'
+        },
+        template: 'trackingCodeView',
+        valueFunction: function () {
             var el = this.$('.trackingDetails input');
             return el.val();
         },
-        valueChangeHandler:function(value){
+        valueChangeHandler: function (value) {
 
             var el = this.$('.trackingDetails input');
             el.val(value);
@@ -183,20 +317,22 @@
             this.model.set('active', isTracking);
 
             var chkbox = this.$('input[name=isTracking]');
-            chkbox.each(function(){
+            chkbox.each(function () {
                 this.checked = isTracking
             })
 
 
-
         },
-        updateActive:function(){
+        updateActive: function () {
             var chkbox = this.$('input[name=isTracking]');
-            this.model.set('active',chkbox.is(':checked'));
+            this.model.set('active', chkbox.is(':checked'));
         },
-        activeChangeHandler:function(value){
-            console.log(this.$('.trackingDetails'), value);
+        activeChangeHandler: function (value) {
+
             this.$('.trackingDetails').toggle(value);
+            if (!value) {
+                this.model.set('errorCode', '')
+            }
         }
     })
 
@@ -220,23 +356,25 @@
         {name: 'altText', activeRules: [
             {expr: 'eq', element: 'adType', value: '2'}
         ]},
-        {name: 'banner', activeRules: [
+        {name: 'banner', type: 'bannerUpload', activeRules: [
             {expr: 'eq', element: 'adType', value: '2'}
         ]},
         {name: 'bannerURL', activeRules: [
             {expr: 'eq', element: 'adType', value: '3'}
-        ],validationRules:[
-            {expr:'req'},
-            {expr:'url'}
+        ], validationRules: [
+            {expr: 'req'},
+            {expr: 'url'}
         ]},
         {name: 'rmURL', activeRules: [
             {expr: 'eq', element: 'adType', value: '4'}
         ]},
-        {name: 'impressionTracking1', type: 'trackingPicker', value:{type:'impression', value:'ravi'}},
-        {name: 'impressionTracking2', type: 'trackingPicker', value:{type:'impression'}},
-        {name: 'clickTracking1', type: 'trackingPicker', value:{type:'click'}},
-        {name: 'clickTracking2', type: 'trackingPicker', value:{type:'click'}},
-        {name: 'trackingCode', type: 'trackingCode', validationRules:[{expr:'req'}], active:false},
+        {name: 'impressionTracking1', type: 'trackingPicker', value: {type: 'impression', value: 'ravi'}},
+        {name: 'impressionTracking2', type: 'trackingPicker', value: {type: 'impression'}},
+        {name: 'clickTracking1', type: 'trackingPicker', value: {type: 'click'}},
+        {name: 'clickTracking2', type: 'trackingPicker', value: {type: 'click'}},
+        {name: 'trackingCode', type: 'trackingCode', validationRules: [
+            {expr: 'req'}
+        ], active: false},
         {name: 'login', type: 'submit', value: 'login', group: 'buttons'}
     ]);
 
@@ -252,6 +390,7 @@
 
     view.addToTypeViewIndex('trackingPicker', TrackingPickerView);
     view.addToTypeViewIndex('trackingCode', TrackingCodeView);
+    view.addToTypeViewIndex('bannerUpload', BannerUploadView);
 
     $('#container').append(view.render().el);
     formModel.on('all', function () {

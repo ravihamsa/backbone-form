@@ -8,6 +8,8 @@
 (function(){
     "use strict";
 
+    var app = window.app;
+
     var BaseView = Backbone.View.extend({
         constructor: function (options) {
             Backbone.View.call(this, options);
@@ -73,6 +75,36 @@
                     });
                 });
             });
+        },
+        renderTemplate: function () {
+            if (typeof this.template === 'string') {
+                //check for template script element
+                if ($('script#' + this.template).length > 0) {
+                    this.template = app.getTemplateFromScriptTag(this.template);
+                }else{
+                    //TODO: load template from external file
+                    console.log('tod0');
+                }
+            }
+
+            if(typeof this.template === 'function'){
+                this.$el.html(this.template(this.model.toJSON()));
+            }
+            this.syncAttributes();
+            
+        },
+        render:function(){
+            this.beforeRender();
+            this.renderTemplate();
+            this.afterRender();
+            return this;
+
+        },
+        beforeRender:function(){
+
+        },
+        afterRender:function(){
+
         },
         hideLoading:function(){
             this.$el.removeClass('loading');

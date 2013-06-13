@@ -82,16 +82,7 @@
             'blur input': 'updateValue'
         },
         template: 'inputView',
-        render: function () {
-            if (typeof this.template === 'string') {
-                if ($('script#' + this.template).length > 0) {
-                    this.template = app.getTemplateFromScriptTag(this.template);
-                }
-            }
-            this.$el.html(this.template(this.model.toJSON()));
-            this.syncAttributes();
-            return this;
-        },
+        
         watchAttributes: function (eventType, model) {
             var changes = model.changedAttributes();
             _.each(changes, function (value, attribute) {
@@ -137,6 +128,7 @@
             var el = this.$(DOT_HELP_INLINE);
             if (errorCode === '') {
                 el.empty();
+                this.model.set('valid', true);
             } else {
                 this.$(DOT_HELP_INLINE).html(app.getString(errorCode));
             }
